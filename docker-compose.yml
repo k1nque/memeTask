@@ -1,0 +1,47 @@
+services:
+  public_api:
+    build: ./PublicAPI
+    volumes:
+      - ./PublicAPI:/PublicAPI
+    image: app:public_api
+    container_name: public_api
+    command: python3
+    depends_on:
+      - private_api
+
+  # private_api:
+  #   build: ./PrivateAPI
+  #   volumes:
+  #     - ./PrivateAPI:/PrivateAPI
+  #   image: app:private_api
+  #   container_name: private_api
+  #   command: python3
+  #   depends_on:
+  #       - db
+
+  postgres:
+    build: postgres
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    container_name: postgres_db 
+
+#     minio:
+#       image: minio/minio
+#       ports:
+#         - "9000:9000"
+#         - "9001:9001"
+#       volumes:
+#         - minio_storage:/data
+#       environment:
+#         MINIO_ROOT_USER: minio
+#         MINIO_ROOT_PASSWORD: minio
+#       command: server --console-address ":9001" /data
+
+# volumes:
+#   minio_storage: {}
