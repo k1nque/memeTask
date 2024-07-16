@@ -3,11 +3,13 @@ services:
     build: ./PublicAPI
     volumes:
       - ./PublicAPI:/PublicAPI
+    ports:
+      - 8000:8000
     image: app:public_api
     container_name: public_api
-    command: python3
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
     depends_on:
-      - private_api
+      - postgres
 
   # private_api:
   #   build: ./PrivateAPI
@@ -20,7 +22,7 @@ services:
   #       - db
 
   postgres:
-    build: postgres
+    image: postgres
     volumes:
       - ./data/db:/var/lib/postgresql/data
     ports:

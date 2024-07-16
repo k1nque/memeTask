@@ -2,6 +2,6 @@ from sqlalchemy.orm import Mapped
 from .base import Base
 
 
-class Memes(Base):
+class Meme(Base):
     __tablename__ = "memes"
-    descriprion: Mapped[str]
+    description: Mapped[str]
