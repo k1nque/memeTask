@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .shemas import MemeCreate, MemeUpdate, MemeUpdatePartitial
 from core.models import Meme
 
-async def get_memes(session: AsyncSession) -> list[Meme]:
-    statement = select(Meme).order_by(Meme.id)
+async def get_memes(session: AsyncSession, offset: int, limit: int) -> list[Meme]:
+    statement = select(Meme).order_by(Meme.id).offset(offset).limit(limit)
     result: Result = await session.execute(statement)
     memes = result.scalars().all()
     return list(memes)

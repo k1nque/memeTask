@@ -1,11 +1,12 @@
 import os
+from typing import BinaryIO
 
 from aiohttp import ClientSession, FormData
 
 URL = os.environ.get("PRIVATE_API_URL")
 PORT = os.environ.get("PRIVATE_API_PORT")
 
-async def upload_file(file: bytes, filename: str) -> int:
+async def upload_file(file: bytes | BinaryIO, filename: str) -> int:
     async with ClientSession() as session:
         data = FormData()
         

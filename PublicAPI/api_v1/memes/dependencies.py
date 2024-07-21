@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Path, Depends, HTTPException, status
+from fastapi import Path, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.models import db_helper, Meme
@@ -19,3 +19,10 @@ async def meme_by_id(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Meme {meme_id} is not found!"
     )
+
+
+def get_pagination_params(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(10, gt=0)
+):
+    return {"offset": offset, "limit"   : limit}

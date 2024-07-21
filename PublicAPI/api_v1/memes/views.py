@@ -1,12 +1,18 @@
-from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.utils import deep_dict_update
+import base64
+from json import dumps
+from fastapi import APIRouter, Form, Response, UploadFile, status, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.responses import JSONResponse
+from io import BytesIO
+
+import zipfile
 
 from .shemas import Meme, MemeCreate, MemeUpdate, MemeUpdatePartitial
-from .dependencies import meme_by_id
+from .dependencies import get_pagination_params, meme_by_id
 
 from . import crud
 from core.models import db_helper
+from core.ext import download_file, upload_file
 
 
 router = APIRouter(tags=["Memes"])
@@ -14,24 +20,92 @@ router = APIRouter(tags=["Memes"])
 
 @router.get("/", response_model=list[Meme])
 async def get_memes(
-    session: AsyncSession = Depends(db_helper.session_dependency)
+    pagination: dict = Depends(get_pagination_params),
+    session: AsyncSession = Depends(db_helper.session_dependency),
+
 ):
-    memes: list[Meme] = await crud.get_memes(session=session)
-    return memes
+    offset = pagination["offset"]
+    limit = pagination["limit"]
+
+    memes: list[Meme] = await crud.get_memes(
+        session=session,
+        offset=offset,
+        limit=limit,
+    )
+
+    images: list[tuple[str, bytes]] = [
+        (meme.filename, await download_file(meme.filename))
+        for meme in memes
+    ]
+
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+        for filename, image in images:
+            zip_file.writestr(filename, image)
+
+    zip_buffer.seek(0)
+
+    json_data = [
+        {
+            "id": meme.id,
+            "description": meme.description,
+            "filename": meme.filename
+        }
+        for meme in memes
+    ]
+
+    json_str = dumps(json_data)
+    json_base64 = base64.b64encode(json_str.encode("utf-8")).decode("utf-8")
+
+    headers = {
+        "Content-Disposition": "attachment; filename=memes.zip",
+        "X-JSON-Data": json_base64,
+        # "X-JSON-Data": JSONResponse(json_data).body.decode("utf-8"),
+        "X-Total-Count": str(len(images)),
+        "X-Offset": str(offset),
+        "X-Limit": str(limit)
+    }
+
+    return Response(
+        content=zip_buffer.getvalue(),
+        headers=headers,
+        media_type="application/zip"
+    )
 
 
 @router.get("/{meme_id}", response_model=Meme)
 async def get_meme(
     meme: Meme = Depends(meme_by_id)
 ):
-    return meme
+    image = await download_file(meme.filename)
+    if image is not None:
+        headers = {
+            "Content-Disposition": f"attachment; filename={meme.filename}",
+            "X-JSON-Data": JSONResponse({
+                "id": meme.id,
+                "descriprion": meme.description,
+                "filename": meme.filename,
+            }).body.decode("utf-8")
+        }
+
+        return Response(
+            content=image,
+            headers=headers,
+            media_type="application/octet-stream"
+        )
     
 
 @router.post("/", response_model=Meme)
 async def create_meme(
-    meme_in: MemeCreate,
+    image: UploadFile,
+    description: str = Form(...),
     session: AsyncSession = Depends(db_helper.session_dependency),
 ):
+    meme_in = MemeCreate(
+        description=description,
+        filename=image.filename
+    )
+    await upload_file(image.file.read(), image.filename)
     meme: Meme = await crud.create_meme(session, meme_in)
     return meme
 

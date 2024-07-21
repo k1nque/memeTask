@@ -1,6 +1,8 @@
 services:
   public_api:
     build: ./PublicAPI
+    env_file:
+      - ./PublicAPI/.env
     volumes:
       - ./PublicAPI:/PublicAPI
     ports:
