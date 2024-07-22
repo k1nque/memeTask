@@ -1,5 +1,3 @@
-from fastapi import File
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict
 
 
@@ -17,7 +15,7 @@ class MemeUpdate(MemeBase):
 
 class MemeUpdatePartitial(MemeUpdate):
     description: str | None = None
-    filename: str | None = None
+    filename: str | None  = None
     
 
 class Meme(MemeBase):

@@ -1,6 +1,7 @@
 import base64
 from json import dumps
-from fastapi import APIRouter, Form, Response, UploadFile, status, Depends
+from fastapi import APIRouter, File, Form, Response, UploadFile, status, Depends
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
 from io import BytesIO
@@ -12,7 +13,7 @@ from .dependencies import get_pagination_params, meme_by_id
 
 from . import crud
 from core.models import db_helper
-from core.ext import download_file, upload_file
+from core.ext import download_file, upload_file, delete_file
 
 
 router = APIRouter(tags=["Memes"])
@@ -112,10 +113,18 @@ async def create_meme(
 
 @router.put("/{meme_id}")
 async def update_meme(
-    meme_update: MemeUpdate,
+    image: UploadFile,
+    description: str,
+    # meme_update: MemeUpdate,
     meme: Meme = Depends(meme_by_id),
     session: AsyncSession = Depends(db_helper.session_dependency)
 ):
+    meme_update = MemeUpdate(
+        description=description,
+        filename=image.filename
+    )
+    await delete_file(meme.filename)
+    await upload_file(image.file.read(), image.filename)
     return await crud.update_meme(
         session=session,
         meme=meme,
@@ -125,10 +134,20 @@ async def update_meme(
 
 @router.patch("/{meme_id}")
 async def update_meme_partial(
-    meme_update: MemeUpdatePartitial,
+    image: UploadFile = File(None),
+    description: str | None = None,
     meme: Meme = Depends(meme_by_id),
     session: AsyncSession = Depends(db_helper.session_dependency)
 ):
+    meme_update = MemeUpdatePartitial(
+        description=description,
+        filename=image.filename if image is not None else None
+    )
+
+    if image is not None:
+        await delete_file(meme.filename)
+        await upload_file(image.file.read(), image.filename)
+        meme_update.filename = image.filename
     return await crud.update_meme(
         session=session,
         meme=meme,
@@ -142,4 +161,5 @@ async def delete_meme(
     meme: Meme = Depends(meme_by_id),
     session: AsyncSession = Depends(db_helper.session_dependency),
 ) -> None:
+    await delete_file(meme.filename)
     await crud.delete_meme(session=session, meme=meme)

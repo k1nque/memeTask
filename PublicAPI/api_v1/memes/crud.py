@@ -31,7 +31,8 @@ async def update_meme(
         partial: bool = False,
 ) -> Meme:
     for name, value in meme_update.model_dump(exclude_unset=partial).items():
-        setattr(meme, name, value)
+        if value is not None:
+            setattr(meme, name, value)
     await session.commit()
     return meme
 
