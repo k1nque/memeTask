@@ -3,8 +3,6 @@ import os
 from aiohttp import ClientSession
 from json import loads
 
-from fastapi import status
-
 URL = os.environ.get("PRIVATE_API_URL")
 PORT = os.environ.get("PRIVATE_API_PORT")
 

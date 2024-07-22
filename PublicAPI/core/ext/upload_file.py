@@ -35,6 +35,4 @@ async def upload_file(file: bytes | BinaryIO, filename: str) -> int:
             ssl=False,
         ) as response:
             status = response.status
-            body = await response.json()
-
             return status
